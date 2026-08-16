@@ -3,7 +3,7 @@ import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Pencil, Plus, FileImage } from "lucide-react";
+import { Pencil, FileImage } from "lucide-react";
 
 function getBookCoverUrl(coverUrl: string | null) {
   if (!coverUrl) return null;
@@ -22,12 +22,6 @@ export default async function AdminBooksPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-3xl font-bold">إدارة الكتب</h1>
-        <Link href="/admin/books/new">
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            إضافة كتاب
-          </Button>
-        </Link>
       </div>
 
       {books && books.length > 0 ? (
