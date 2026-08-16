@@ -7,7 +7,11 @@ export const BOOK_PRICE = 960;
 export const BOOK_CURRENCY = "DA";
 export const AUTHOR_NAME = "ملياني فاطمة الزهراء";
 
-export const WHATSAPP_NUMBER = process.env.WHATSAPP_NUMBER || "+213697842678";
+export const WHATSAPP_NUMBER =
+  process.env.NEXT_PUBLIC_OWNER_WHATSAPP_NUMBER ||
+  process.env.WHATSAPP_NUMBER ||
+  "+213697825418";
+
 export const WHATSAPP_MESSAGE =
   "السلام عليكم، أريد حجز حصة فردية.";
 

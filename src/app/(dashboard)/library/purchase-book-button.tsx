@@ -50,7 +50,9 @@ export function PurchaseBookButton({
       // notify owner via WhatsApp (click-to-chat fallback)
       try {
         const ownerNumber =
-          process.env.NEXT_PUBLIC_OWNER_WHATSAPP_NUMBER || WHATSAPP_NUMBER;
+          process.env.NEXT_PUBLIC_OWNER_WHATSAPP_NUMBER ||
+          process.env.WHATSAPP_NUMBER ||
+          WHATSAPP_NUMBER;
         const orderId = result?.order?.id ?? "";
         const origin = typeof window !== "undefined" ? window.location.origin : "";
         const adminUrl = origin ? `${origin}/admin/orders` : "/admin/orders";
