@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import { logger } from "@/lib/logger";
 import ReaderClient from "./reader-client";
 
 interface Props {
@@ -50,6 +51,12 @@ export default async function ReaderPage({ params }: Props) {
     .eq("id", bookId)
     .single();
 
+  logger.info("Book reader loaded", {
+    bookId,
+    pageCount: pages?.length ?? 0,
+    hasPurchaserProfile: Boolean(profile?.full_name && profile?.email),
+  });
+
   if (!pages || pages.length === 0) {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center px-4">
@@ -64,20 +71,10 @@ export default async function ReaderPage({ params }: Props) {
     );
   }
 
-  const pageEntries = await Promise.all(
-    pages.map(async (page) => {
-      const filePath = page.image_url || `${bookId}/page-${String(page.page_number).padStart(4, "0")}.jpg`;
-      const { data: signedUrl, error } = await supabase.storage
-        .from("book-pages")
-        .createSignedUrl(filePath, 60 * 15);
-
-      return {
-        id: page.id,
-        page_number: page.page_number,
-        url: !error && signedUrl?.signedUrl ? signedUrl.signedUrl : undefined,
-      };
-    })
-  );
+  const pageEntries = pages.map((page) => ({
+    id: page.id,
+    page_number: page.page_number,
+  }));
 
   return (
     <div className="flex min-h-screen flex-col">

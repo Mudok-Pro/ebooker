@@ -45,6 +45,10 @@ export async function GET(request: NextRequest) {
   }
 
   const requestedPageNumber = parseInt(pageNumber, 10);
+  if (!Number.isInteger(requestedPageNumber) || requestedPageNumber < 1) {
+    return NextResponse.json({ error: "Invalid page number" }, { status: 400 });
+  }
+
   const { data: page, error } = await supabase
     .from("book_pages")
     .select("image_url")
@@ -67,8 +71,12 @@ export async function GET(request: NextRequest) {
       const exactMatch = objects.find((item) => {
         if (!item.name) return false;
         const normalized = item.name.toLowerCase();
-        return normalized.includes(`page-${String(requestedPageNumber).padStart(4, "0")}`)
-          || normalized.includes(`page-${String(requestedPageNumber)}`);
+        const pageMatch = normalized.match(
+          /(?:^|[^a-z0-9])page[-_\s]*(\d{1,4})(?:\.[a-z0-9]+)?$/i
+        );
+        return pageMatch?.[1]
+          ? Number.parseInt(pageMatch[1], 10) === requestedPageNumber
+          : false;
       });
 
       if (exactMatch) {
@@ -95,7 +103,7 @@ export async function GET(request: NextRequest) {
   const response = NextResponse.redirect(signedUrl.signedUrl, 307);
   response.headers.set(
     "Cache-Control",
-    "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800"
+    "private, max-age=900"
   );
   response.headers.set("Content-Disposition", "inline");
   response.headers.set("X-Content-Type-Options", "nosniff");

@@ -75,16 +75,24 @@ export default async function LibraryPage() {
                 <Card key={book.id}>
                   <div className="overflow-hidden border-b">
                     {coverUrl ? (
-                      <Image
-                        src={coverUrl}
-                        alt={book.title}
-                        width={800}
-                        height={500}
-                        priority={book.id === books[0]?.id}
-                        loading={book.id === books[0]?.id ? "eager" : "lazy"}
-                        className="h-48 w-full object-cover"
-                        unoptimized
-                      />
+                      <a
+                        href={coverUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`فتح غلاف ${book.title} بالحجم الكامل`}
+                        className="block"
+                      >
+                        <Image
+                          src={coverUrl}
+                          alt={book.title}
+                          width={800}
+                          height={500}
+                          priority={book.id === books[0]?.id}
+                          loading={book.id === books[0]?.id ? "eager" : "lazy"}
+                          className="h-48 w-full object-cover"
+                          unoptimized
+                        />
+                      </a>
                     ) : (
                       <div className="flex h-48 items-center justify-center bg-muted text-sm text-muted-foreground">
                         غلاف غير متاح

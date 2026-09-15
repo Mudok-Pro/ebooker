@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { logger } from "@/lib/logger";
 import { Pencil, FileImage } from "lucide-react";
 
 function getBookCoverUrl(coverUrl: string | null) {
@@ -17,6 +18,8 @@ export default async function AdminBooksPage() {
     .from("books")
     .select("*")
     .order("created_at", { ascending: false });
+
+  logger.info("Admin books page rendered", { bookCount: books?.length ?? 0 });
 
   return (
     <div className="container mx-auto px-4 py-8">

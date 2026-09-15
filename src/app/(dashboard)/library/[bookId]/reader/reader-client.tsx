@@ -31,7 +31,7 @@ export default function ReaderClient({
   const [zoomLevel, setZoomLevel] = useState(100);
   const [fitToWidth, setFitToWidth] = useState(false);
   const [loadedPages, setLoadedPages] = useState<Record<number, boolean>>({});
-  const preloadQueueRef = useRef<Set<number>>(new Set());
+  const [failedPages, setFailedPages] = useState<Record<number, boolean>>({});
   const pinchStateRef = useRef<{
     distance: number;
     startZoom: number;
@@ -50,30 +50,13 @@ export default function ReaderClient({
     );
   }, [pages]);
 
+  const markPageFailed = useCallback((pageNumber: number) => {
+    setFailedPages((prev) => (prev[pageNumber] ? prev : { ...prev, [pageNumber]: true }));
+  }, []);
+
   const markPageLoaded = useCallback((pageNumber: number) => {
     setLoadedPages((prev) => (prev[pageNumber] ? prev : { ...prev, [pageNumber]: true }));
   }, []);
-
-  useEffect(() => {
-    if (!currentPage) return;
-
-    const lastPageNumber = pages[pages.length - 1]?.page_number ?? currentPage.page_number;
-    const startPage = Math.max(1, currentPage.page_number - 2);
-    const endPage = Math.min(lastPageNumber, currentPage.page_number + 2);
-
-    for (let pageNumber = startPage; pageNumber <= endPage; pageNumber += 1) {
-      if (loadedPages[pageNumber] || preloadQueueRef.current.has(pageNumber)) {
-        continue;
-      }
-
-      preloadQueueRef.current.add(pageNumber);
-      const preloadImage = new window.Image();
-      preloadImage.decoding = "async";
-      preloadImage.onload = () => markPageLoaded(pageNumber);
-      preloadImage.onerror = () => markPageLoaded(pageNumber);
-      preloadImage.src = pageUrls[pageNumber];
-    }
-  }, [currentPage, loadedPages, pageUrls, pages, markPageLoaded]);
 
   useEffect(() => {
     function preventBrowserActions(event: MouseEvent | KeyboardEvent) {
@@ -152,7 +135,8 @@ export default function ReaderClient({
   }, [fitToWidth, getFitWidthZoom]);
 
   const currentUrl = pageUrls[currentPage.page_number] ||
-    `/api/pages?bookId=${encodeURIComponent(bookId)}&pageNumber=${currentPage.page_number}`;
+    `/api/pages?bookId=${encodeURIComponent(bookId)}&pageNumber=${currentPage.page_number}&v=2`;
+  const pageLoadFailed = failedPages[currentPage.page_number];
 
   const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
     if (event.touches.length !== 2) return;
@@ -223,19 +207,18 @@ export default function ReaderClient({
         </div>
       </header>
 
-      <main className="flex flex-1 items-center justify-center overflow-auto px-4 pb-28 pt-4">
+      <main className="flex flex-1 items-center justify-center overflow-auto px-4 pb-40 pt-4 sm:pb-28">
         <div className="relative isolate flex w-full max-w-4xl justify-center">
-          {loadingUrl && !currentUrl ? (
-            <div className="flex items-center justify-center py-32">
-              <Loader2 className="h-8 w-8 animate-spin text-white" />
+          {pageLoadFailed ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-32 text-white">
+              <span>تعذر تحميل الصفحة</span>
             </div>
           ) : currentUrl ? (
             <div
               className="relative mx-auto flex w-full max-w-full justify-center origin-top transition-transform duration-150 ease-out"
               style={{
                 isolation: "isolate",
-                transform: `scale(${zoomLevel / 100})`,
-                transformOrigin: "center center",
+                zoom: zoomLevel / 100,
                 maxWidth: "min(100%, 900px)",
                 touchAction: "none",
               }}
@@ -246,6 +229,7 @@ export default function ReaderClient({
             >
               <div className="relative inline-block overflow-hidden rounded-lg shadow-2xl">
                 <Image
+                  key={currentPage.page_number}
                   src={currentUrl}
                   alt={`صفحة ${currentPage.page_number}`}
                   width={900}
@@ -253,22 +237,23 @@ export default function ReaderClient({
                   priority={currentIndex === 0}
                   loading={currentIndex === 0 ? "eager" : "lazy"}
                   sizes="(max-width: 768px) 100vw, 900px"
-                  className="relative z-0 block h-auto max-h-[calc(100vh-10rem)] w-auto max-w-full"
+                  onLoad={() => markPageLoaded(currentPage.page_number)}
+                  onError={() => markPageFailed(currentPage.page_number)}
+                  className={`relative z-0 block h-auto max-h-[calc(100vh-10rem)] w-auto max-w-full transition-opacity ${loadingUrl ? "opacity-0" : "opacity-100"}`}
                   style={{ zIndex: 0, maxHeight: "calc(100vh - 10rem)" }}
                   unoptimized
                 />
+                {loadingUrl ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                    <span>جاري تحميل الصفحة</span>
+                  </div>
+                ) : null}
                 <div
-                  className="pointer-events-none absolute inset-0 z-10 grid grid-cols-2 grid-rows-4 overflow-hidden"
+                  className="pointer-events-none absolute left-0.5 top-0.5 z-10 max-w-[calc(100%-1.5rem)] text-[8px] font-bold leading-tight text-white/50 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] sm:left-0.5 sm:top-0.5 sm:text-[10px]"
                   style={{ zIndex: 10 }}
                 >
-                  {Array.from({ length: 8 }, (_, index) => (
-                    <div
-                      key={index}
-                      className="flex rotate-[-25deg] items-center justify-center whitespace-nowrap text-sm font-bold text-white/40 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] sm:text-base"
-                    >
-                      {userName} • {userEmail}
-                    </div>
-                  ))}
+                  {userName}:{userEmail}
                 </div>
               </div>
             </div>
@@ -280,25 +265,25 @@ export default function ReaderClient({
         </div>
       </main>
 
-      <footer className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-center gap-3 border-t border-gray-700 bg-gray-800/95 px-4 py-3 backdrop-blur-sm">
-        <div className="flex items-center gap-2 rounded-md border border-gray-600 bg-gray-700 px-2 py-1">
+      <footer className="fixed inset-x-0 bottom-0 z-40 flex flex-wrap items-center justify-center gap-2 border-t border-gray-700 bg-gray-800/95 px-2 py-2 backdrop-blur-sm sm:gap-3 sm:px-4 sm:py-3">
+        <div className="flex max-w-full items-center gap-1 rounded-md border border-gray-600 bg-gray-700 px-1 py-1 sm:gap-2 sm:px-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => handleZoomChange(zoomLevel - 10)}
-            className="h-8 w-8 border-gray-500 bg-transparent p-0 text-white hover:bg-gray-600"
+            className="h-8 w-8 shrink-0 border-gray-500 bg-transparent p-0 text-white hover:bg-gray-600"
             aria-label="Zoom out"
           >
             −
           </Button>
-          <span className="min-w-[3.5rem] text-center text-xs font-medium text-gray-200">
+          <span className="min-w-12 text-center text-xs font-medium text-gray-200">
             {zoomLevel}%
           </span>
           <Button
             variant="outline"
             size="sm"
             onClick={() => handleZoomChange(zoomLevel + 10)}
-            className="h-8 w-8 border-gray-500 bg-transparent p-0 text-white hover:bg-gray-600"
+            className="h-8 w-8 shrink-0 border-gray-500 bg-transparent p-0 text-white hover:bg-gray-600"
             aria-label="Zoom in"
           >
             +
@@ -307,7 +292,7 @@ export default function ReaderClient({
             variant="outline"
             size="sm"
             onClick={handleResetZoom}
-            className="h-8 border-gray-500 bg-transparent px-2 text-[10px] font-medium text-white hover:bg-gray-600"
+            className="h-8 shrink-0 border-gray-500 bg-transparent px-2 text-[10px] font-medium text-white hover:bg-gray-600"
             aria-label="Reset zoom"
           >
             Reset
@@ -316,7 +301,7 @@ export default function ReaderClient({
             variant="outline"
             size="sm"
             onClick={handleFitWidthToggle}
-            className="h-8 border-gray-500 bg-transparent px-2 text-[10px] font-medium text-white hover:bg-gray-600"
+            className="h-8 shrink-0 border-gray-500 bg-transparent px-2 text-[10px] font-medium text-white hover:bg-gray-600"
             aria-label="Toggle fit width"
           >
             {fitToWidth ? "Fit: On" : "Fit Width"}
@@ -324,27 +309,35 @@ export default function ReaderClient({
         </div>
 
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           onClick={goToPrev}
           disabled={currentIndex === 0}
-          className="gap-1 border-gray-600 text-white hover:bg-gray-700 hover:text-white"
+          className="shrink-0 gap-1 text-white hover:bg-transparent hover:text-white"
+          aria-label="Previous page"
         >
-          <ChevronRight className="h-4 w-4" />
-          السابق
+          <span className="sm:hidden">&lt;</span>
+          <span className="hidden sm:inline">
+            <ChevronRight className="h-4 w-4" />
+            السابق
+          </span>
         </Button>
-        <span className="min-w-[4rem] text-center text-sm text-gray-400">
+        <span className="min-w-16 shrink-0 text-center text-sm text-gray-400">
           {currentPage.page_number}
         </span>
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           onClick={goToNext}
           disabled={currentIndex === totalPages - 1}
-          className="gap-1 border-gray-600 text-white hover:bg-gray-700 hover:text-white"
+          className="shrink-0 gap-1 text-white hover:bg-transparent hover:text-white"
+          aria-label="Next page"
         >
-          التالي
-          <ChevronLeft className="h-4 w-4" />
+          <span className="hidden sm:inline">
+            التالي
+            <ChevronLeft className="h-4 w-4" />
+          </span>
+          <span className="sm:hidden">&gt;</span>
         </Button>
       </footer>
     </div>

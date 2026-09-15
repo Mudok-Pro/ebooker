@@ -286,6 +286,9 @@ src/lib/logger.ts
 | M6: Reader | ✅ | `src/app/(dashboard)/library/[bookId]/reader/*`, `src/app/api/pages/route.ts` |
 | M7: Admin Dashboard | ✅ | `src/app/admin/**`, `src/app/api/admin/*` |
 | M8: Polish | ✅ | Error boundaries, loading states, not-found pages |
+| M9: Admin Book Creation Entry Point | ✅ | `src/app/admin/books/page.tsx` |
+| M10: Reader Watermark Overlay | ✅ | `src/app/(dashboard)/library/[bookId]/reader/*` |
+| M11: Reader Zoom Header Clearance | ✅ | `src/app/(dashboard)/library/[bookId]/reader/reader-client.tsx` |
 
 ### Tech Debt Watch
 
@@ -314,3 +317,6 @@ src/lib/logger.ts
 | 2026-07-22 | Storage path stored in DB, signed URL at read time | Decouples storage from access; URLs expire, paths don't |
 | 2026-07-22 | Next.js 16 proxy.ts convention | middleware.ts is deprecated in Next.js 16.2 |
 | 2026-07-22 | Separate queries instead of Supabase FK joins | Avoids TypeScript array-type inference issues with joins |
+| 2026-09-10 | Admin books list exposes the existing create-book route | Restores the visible entry point without changing the creation flow |
+| 2026-09-10 | Reader watermark is a single top-left overlay tied to the page image | Keeps purchaser identity visible without repeating it across the page |
+| 2026-09-10 | Reader zoom anchors at the page top | Prevents scaled content from moving beneath the sticky reader header |

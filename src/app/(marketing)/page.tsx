@@ -119,7 +119,7 @@ export default function LandingPage() {
   return (
     <div className="flex flex-col overflow-hidden">
       <header className="sticky top-0 z-50 border-b border-border/70 bg-white/85 backdrop-blur-xl">
-        <div className="mx-auto flex h-[76px] w-full max-w-7xl items-center justify-between px-5 lg:px-8">
+        <div className="mx-auto flex h-19 w-full max-w-7xl items-center justify-between px-5 lg:px-8">
           <Link href="/" className="flex items-center gap-2 text-lg font-bold text-primary">
             <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-[#fdf8f6] shadow-sm">
               <Image
