@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,11 @@ export default function ReaderClient({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [fitToWidth, setFitToWidth] = useState(false);
+  const isMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   const [loadedPages, setLoadedPages] = useState<Record<number, boolean>>({});
   const [failedPages, setFailedPages] = useState<Record<number, boolean>>({});
   const pinchStateRef = useRef<{
@@ -90,7 +95,7 @@ export default function ReaderClient({
   }, [pages.length]);
 
   const clampZoom = useCallback((value: number) => {
-    return Math.min(200, Math.max(80, value));
+    return Math.min(400, Math.max(80, value));
   }, []);
 
   const getFitWidthZoom = useCallback(() => {
@@ -207,7 +212,7 @@ export default function ReaderClient({
         </div>
       </header>
 
-      <main className="flex flex-1 items-center justify-center overflow-auto px-4 pb-40 pt-4 sm:pb-28">
+      <main className="flex flex-1 items-center justify-center overflow-auto px-4 pb-64 pt-4 sm:pb-32">
         <div className="relative isolate flex w-full max-w-4xl justify-center">
           {pageLoadFailed ? (
             <div className="flex flex-col items-center justify-center gap-3 py-32 text-white">
@@ -215,48 +220,48 @@ export default function ReaderClient({
             </div>
           ) : currentUrl ? (
             <div
-              className="relative mx-auto flex w-full max-w-full justify-center origin-top transition-transform duration-150 ease-out"
+              className="relative mx-auto w-full max-w-225"
               style={{
-                isolation: "isolate",
-                zoom: zoomLevel / 100,
-                maxWidth: "min(100%, 900px)",
-                touchAction: "none",
+                paddingBottom: `${Math.max(0, (zoomLevel / 100 - 1) * 100)}vh`,
               }}
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-              onTouchCancel={handleTouchEnd}
             >
-              <div className="relative inline-block overflow-hidden rounded-lg shadow-2xl">
-                <Image
-                  key={currentPage.page_number}
-                  src={currentUrl}
-                  alt={`صفحة ${currentPage.page_number}`}
-                  width={900}
-                  height={1200}
-                  priority={currentIndex === 0}
-                  loading={currentIndex === 0 ? "eager" : "lazy"}
-                  sizes="(max-width: 768px) 100vw, 900px"
-                  onLoad={() => markPageLoaded(currentPage.page_number)}
-                  onError={() => markPageFailed(currentPage.page_number)}
-                  className={`relative z-0 block h-auto max-h-[calc(100vh-10rem)] w-auto max-w-full transition-opacity ${loadingUrl ? "opacity-0" : "opacity-100"}`}
-                  style={{ zIndex: 0, maxHeight: "calc(100vh - 10rem)" }}
-                  unoptimized
-                />
-                {loadingUrl ? (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                    <span>جاري تحميل الصفحة</span>
+              <div
+                className="relative flex w-full max-w-full justify-center origin-top transition-transform duration-150 ease-out"
+                style={{
+                  isolation: "isolate",
+                  transform: `scale(${zoomLevel / 100})`,
+                  touchAction: "none",
+                }}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                onTouchCancel={handleTouchEnd}
+              >
+                <div className="relative inline-block overflow-hidden rounded-lg shadow-2xl">
+                  <Image
+                    key={currentPage.page_number}
+                    src={currentUrl}
+                    alt={`صفحة ${currentPage.page_number}`}
+                    width={900}
+                    height={1200}
+                    priority={currentIndex === 0}
+                    loading={currentIndex === 0 ? "eager" : "lazy"}
+                    sizes="(max-width: 768px) 100vw, 900px"
+                    onLoad={() => markPageLoaded(currentPage.page_number)}
+                    onError={() => markPageFailed(currentPage.page_number)}
+                    className={`relative z-0 block h-auto max-h-[calc(100vh-10rem)] w-auto max-w-full transition-opacity ${loadingUrl ? "opacity-0" : "opacity-100"}`}
+                    style={{ zIndex: 0, maxHeight: "calc(100vh - 10rem)" }}
+                    unoptimized
+                  />
+                  {loadingUrl ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white">
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                      <span>جاري تحميل الصفحة</span>
+                    </div>
+                  ) : null}
+                  <div className="pointer-events-none absolute left-0.5 top-0.5 z-10 max-w-[calc(100%-1.5rem)] text-[8px] font-bold leading-tight text-white/50 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] sm:left-0.5 sm:top-0.5 sm:text-[10px]">
+                    {userName}:{userEmail}
                   </div>
-                ) : null}
-                <div
-                  className="pointer-events-none absolute left-0.5 top-0.5 z-10 max-w-[calc(100%-1.5rem)] text-[8px] font-bold leading-tight text-white/50 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] sm:left-0.5 sm:top-0.5 sm:text-[10px]"
-                  style={{
-                    zIndex: 10,
-                    fontSize: `calc(${100 / zoomLevel} * 8px)`,
-                  }}
-                >
-                  {userName}:{userEmail}
                 </div>
               </div>
             </div>
@@ -315,7 +320,7 @@ export default function ReaderClient({
           variant="ghost"
           size="sm"
           onClick={goToPrev}
-          disabled={currentIndex === 0}
+          disabled={isMounted && currentIndex === 0}
           className="shrink-0 gap-1 text-white hover:bg-transparent hover:text-white"
           aria-label="Previous page"
         >
@@ -332,7 +337,7 @@ export default function ReaderClient({
           variant="ghost"
           size="sm"
           onClick={goToNext}
-          disabled={currentIndex === totalPages - 1}
+          disabled={isMounted && currentIndex === totalPages - 1}
           className="shrink-0 gap-1 text-white hover:bg-transparent hover:text-white"
           aria-label="Next page"
         >
