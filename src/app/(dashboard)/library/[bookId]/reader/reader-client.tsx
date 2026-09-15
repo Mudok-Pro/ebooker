@@ -251,7 +251,10 @@ export default function ReaderClient({
                 ) : null}
                 <div
                   className="pointer-events-none absolute left-0.5 top-0.5 z-10 max-w-[calc(100%-1.5rem)] text-[8px] font-bold leading-tight text-white/50 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] sm:left-0.5 sm:top-0.5 sm:text-[10px]"
-                  style={{ zIndex: 10 }}
+                  style={{
+                    zIndex: 10,
+                    fontSize: `calc(${100 / zoomLevel} * 8px)`,
+                  }}
                 >
                   {userName}:{userEmail}
                 </div>
